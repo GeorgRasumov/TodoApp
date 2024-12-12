@@ -10,17 +10,16 @@ import androidx.lifecycle.ViewModelProvider
 import com.georg.todoapp.databinding.FragmentSlideshowBinding
 
 class SlideshowFragment : Fragment() {
-
     private var _binding: FragmentSlideshowBinding? = null
 
     // This property is only valid between onCreateView and
     // onDestroyView.
-    private val binding get() = _binding!!
+    val binding get() = _binding!!
 
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
-        savedInstanceState: Bundle?
+        savedInstanceState: Bundle?,
     ): View {
         val slideshowViewModel =
             ViewModelProvider(this).get(SlideshowViewModel::class.java)

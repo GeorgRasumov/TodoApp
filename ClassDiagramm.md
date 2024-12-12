@@ -202,5 +202,3 @@ TodoItemListViewModel --> IReadTodoItemList : observes
 
 TodoRepository --> TodoItem : updates
 TodoRepository --> TodoItemList : updates
-
-
