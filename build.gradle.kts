@@ -10,6 +10,7 @@ subprojects {
     spotless {
         kotlin {
             target("**/*.kt")  // Include all Kotlin files
+            targetExclude("**/test/**", "**/testSrc/**", "**/src/test/**", "**/src/androidTest/**") // Exclude test files
 
             // Use ktlint for Kotlin formatting
             ktlint("1.5.0") // Replace with the desired ktlint version
@@ -35,3 +36,4 @@ subprojects {
         }
     }
 }
+
