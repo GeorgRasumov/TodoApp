@@ -67,9 +67,6 @@ class TodoRepositoryTest {
         `when`(todoDataSource.getTodoItem(initTodoItem1.id)).thenReturn(
             initTodoItem1.copy()
         )
-        `when`(todoDataSource.getTodoItem(initTodoItem2.id)).thenReturn(
-            initTodoItem2.copy()
-        )
 
         uniqueIdProvider = mock(IUniqueIdProvider::class.java)
         var currentId = 2
@@ -91,6 +88,28 @@ class TodoRepositoryTest {
     }
 
 
+
+    @Test
+    fun `get single TodoItem`() = runTest {
+        val todoItem = todoRepository.getTodoItem(initTodoItem1.id)
+        assertNotNull(todoItem)
+        assertEquals(initTodoItem1.id, todoItem?.id)
+
+        val todoItems = todoRepository.getTodoItems(DateType.getInstance(DateType.Type.NO_DATE))
+
+        todoItems.items[initTodoItem1.id]?.title?.value = editedTodoItem.title.value
+
+        var collectedTitle = ""
+        val collectTitleJob = launch {
+            todoItems.items[initTodoItem1.id]?.title?.collect {
+                collectedTitle = it
+            }
+        }
+
+        advanceUntilIdle()
+        collectTitleJob.cancel()
+        assertEquals(editedTodoItem.title.value, collectedTitle)
+    }
 
     @Test
     fun `Method createNewTodoItem`() = runTest {
