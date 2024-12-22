@@ -2,7 +2,8 @@ package com.georg.todoapp.data.todos
 
 import com.georg.todoapp.data.todos.IReadOnlyTodoItem
 import com.georg.todoapp.utils.IObservableList
+import kotlinx.coroutines.flow.SharedFlow
 
 interface ReadOnlyTodoItemList : IObservableList<Int, IReadOnlyTodoItem> {
-    fun dispose()
+    val positionsChanged: SharedFlow<Unit>
 }

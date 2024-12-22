@@ -2,24 +2,33 @@ package com.georg.todoapp.data.todos
 
 import com.georg.todoapp.data.DateType
 import com.georg.todoapp.data.IUniqueIdProvider
-import com.georg.todoapp.utils.ChangeNotifier
 import com.georg.todoapp.utils.IEvent
 import com.georg.todoapp.utils.MutableEvent
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 
 class TodoRepository(
     private val uniqueIdProvider: IUniqueIdProvider,
     private val dataSource: ITodoDataSource,
-) {
-    private val _updateTodosEvent = MutableEvent<DateType>()
-    val updateTodosEvent: IEvent<DateType> = _updateTodosEvent
-    private val _todoAddedEvent = MutableEvent<IReadOnlyTodoItem>()
-    val todoAddedEvent: IEvent<IReadOnlyTodoItem> = _todoAddedEvent
+    private val scope: CoroutineScope,
+) : ITodoRepository {
+    private val _onGetTodosEvent = MutableEvent<DateType>()
+    val onGetTodosEvent: IEvent<DateType> = _onGetTodosEvent
 
-    // Do not directly assign a todoItem but use the add Method from the item instance
-    private val todoChangedNotifier = ChangeNotifier<Int, TodoItem>()
+    private val todoItems = mutableMapOf<Int, TodoItem>()
+    private val todoItemLists = mutableMapOf<DateType, TodoItemList>()
 
-    // Do not directly assign a list but use the add Method from the list instance
-    private val todoListChangedNotifier = ChangeNotifier<DateType, TodoItemList>()
+    init {
+        // Start the coroutine as soon as the instance is created
+        scope.launch {
+            while (isActive) {
+                delay(10_000L) // Wait for 10 seconds
+                cleanupLists()
+            }
+        }
+    }
 
     fun createNewTodoItem(
         title: String,
@@ -37,29 +46,42 @@ class TodoRepository(
                 position = position,
                 isCompleted = isCompleted,
             )
-        newTodoItem.setChangeNotifier(todoChangedNotifier)
-        todoListChangedNotifier.notifyListeners(dateType) {
-            // Copy the item so that one receiver can dispose the item without affecting the other receivers
-            val copiedTodoItem = newTodoItem.copy()
-            copiedTodoItem.setChangeNotifier(todoChangedNotifier)
-            it.add(newTodoItem.id, copiedTodoItem)
-        }
+        todoItems[newTodoItem.id] = newTodoItem
+        todoItemLists[dateType]?.add(newTodoItem.id, newTodoItem)
         dataSource.addTodoItem(newTodoItem)
         return newTodoItem
     }
 
-    fun getTodoItems(dateType: DateType): ReadOnlyTodoItemList {
-        val todoList = dataSource.getTodoItems(dateType)
-        todoList.items.forEach { it.value.setChangeNotifier(todoChangedNotifier) }
-        todoList.setChangeNotifier(todoListChangedNotifier)
+    fun deleteTodoItem(id: Int) {
+        val todoItem = getTodoItem(id) ?: throw IllegalArgumentException("Todo item with id $id not found")
+        todoItems.remove(id)
+        todoItemLists[todoItem.dateType.value]?.remove(id)
+        dataSource.removeTodoItem(id)
+    }
+
+    fun getTodoItems(dateType: DateType): TodoItemList {
+        val todoList =
+            if (todoItemLists.containsKey(dateType)) {
+                todoItemLists[dateType]!!
+            } else {
+                val newItems = dataSource.getTodoItems(dateType)
+                todoItemLists[dateType] = newItems
+                for (item in newItems.items.values) {
+                    todoItems[item.id] = item
+                }
+                newItems
+            }
+        _onGetTodosEvent.trigger(dateType) // Update after the items have been loaded, so there is a list the items can be added to
         return todoList
     }
+
+    fun getTodoItem(id: Int): TodoItem? = todoItems[id] ?: dataSource.getTodoItem(id)
 
     fun editTitle(
         id: Int,
         title: String,
     ) {
-        todoChangedNotifier.notifyListeners(id) { it.title.value = title }
+        todoItems[id]?.title?.value = title
         dataSource.updateTitle(id, title)
     }
 
@@ -67,7 +89,7 @@ class TodoRepository(
         id: Int,
         description: String,
     ) {
-        todoChangedNotifier.notifyListeners(id) { it.description.value = description }
+        todoItems[id]?.description?.value = description
         dataSource.updateDescription(id, description)
     }
 
@@ -75,23 +97,82 @@ class TodoRepository(
         id: Int,
         newDateType: DateType,
     ) {
-        todoChangedNotifier.notifyListeners(id) { it.dateType.value = newDateType }
+        val todoItem = getTodoItem(id) ?: throw IllegalArgumentException("Todo item with id $id not found")
+        todoItemLists[todoItem.dateType.value]?.remove(id)
+        todoItem.dateType.value = newDateType
+        todoItemLists[newDateType]?.add(id, todoItem)
         dataSource.updateDateType(id, newDateType)
     }
 
-    fun editPosition(
+    private fun editPosition(
         id: Int,
         position: Int,
     ) {
-        todoChangedNotifier.notifyListeners(id) { it.position.value = position }
+        todoItems[id]?.position?.value = position
         dataSource.updatePosition(id, position)
+    }
+
+    fun updatePosition(
+        id: Int,
+        position: Int,
+    ) {
+        val todoItem = getTodoItem(id) ?: throw IllegalArgumentException("Todo item with id $id not found")
+        val todoItems = getTodoItems(todoItem.dateType.value).items.values.toMutableList()
+        val oldPosition = todoItem.position.value
+
+        val sortedItems = todoItems.sortedBy { it.position.value }.toMutableList()
+        sortedItems.removeAt(oldPosition)
+        sortedItems.add(position, todoItem)
+
+        sortedItems.forEachIndexed { index, item ->
+            editPosition(item.id, index)
+        }
+        todoItemLists[todoItem.dateType.value]?.positionsChanged()
     }
 
     fun editIsCompleted(
         id: Int,
         isCompleted: Boolean,
     ) {
-        todoChangedNotifier.notifyListeners(id) { it.isCompleted.value = isCompleted }
+        todoItems[id]?.isCompleted?.value = isCompleted
         dataSource.updateIsCompleted(id, isCompleted)
+    }
+
+    private var itemsMarkedForRemoval = mutableSetOf<Int>()
+    private var listsMarkedForRemoval = mutableSetOf<DateType>()
+
+    private fun cleanupLists() {
+        // Determine lists with no observers
+        val currentListsToRemove =
+            todoItemLists
+                .filterValues { itemList ->
+                    !itemList.hasObservers()
+                }.keys
+
+        // Determine items with no observers
+        val currentItemsToRemove =
+            todoItems
+                .filterValues { item ->
+                    !item.hasObservers()
+                }.keys
+
+        // Remove lists that were marked in the previous run and are still marked
+        val confirmedListsToRemove = listsMarkedForRemoval.intersect(currentListsToRemove)
+        for (key in confirmedListsToRemove) {
+            todoItemLists.remove(key)
+        }
+
+        // Remove items that were marked in the previous run and are still marked
+        val confirmedItemsToRemove = itemsMarkedForRemoval.intersect(currentItemsToRemove)
+        for (key in confirmedItemsToRemove) {
+            todoItems.remove(key)
+        }
+
+        // Update the marked sets for the next run
+        listsMarkedForRemoval = currentListsToRemove.toMutableSet()
+        itemsMarkedForRemoval = currentItemsToRemove.toMutableSet()
+
+        println("Cleaned up ${confirmedItemsToRemove.size} empty items at ${System.currentTimeMillis()}")
+        println("Cleaned up ${confirmedListsToRemove.size} empty lists at ${System.currentTimeMillis()}")
     }
 }

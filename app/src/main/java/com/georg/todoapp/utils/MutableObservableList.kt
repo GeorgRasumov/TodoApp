@@ -28,4 +28,6 @@ open class MutableObservableList<Index, MutableItem, ReadOnlyItem> : IObservable
     }
 
     fun get(index: Index): MutableItem = items[index] ?: throw IllegalArgumentException("No item found for the given index: $index")
+
+    open fun hasObservers(): Boolean = _itemAdded.subscriptionCount.value > 0 || _itemRemoved.subscriptionCount.value > 0
 }
