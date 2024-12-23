@@ -9,7 +9,7 @@ interface ITodoDataSource {
 
     fun removeTodoItem(id: Int): Boolean
 
-    fun getTodoItems(dateType: DateType): TodoItemList
+    fun getTodoItems(dateType: DateType): List<TodoItem>
 
     fun updateTitle(
         id: Int,

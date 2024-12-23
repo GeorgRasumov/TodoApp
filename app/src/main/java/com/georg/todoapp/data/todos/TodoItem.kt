@@ -4,7 +4,7 @@ import com.georg.todoapp.data.DateType
 import kotlinx.coroutines.flow.MutableStateFlow
 
 class TodoItem(
-    val id: Int,
+    override val id: Int,
     title: String,
     dateType: DateType,
     description: String = "",

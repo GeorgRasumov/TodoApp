@@ -5,7 +5,6 @@ import com.georg.todoapp.data.todos.ITodoDataSource
 import com.georg.todoapp.data.IUniqueIdProvider
 import com.georg.todoapp.data.todos.ReadOnlyTodoItemList
 import com.georg.todoapp.data.todos.TodoItem
-import com.georg.todoapp.data.todos.TodoItemList
 import com.georg.todoapp.data.todos.TodoRepository
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
@@ -52,17 +51,16 @@ class TodoRepositoryTest {
     fun setUp() {
         testScope = TestScope()
 
-
-        val todoItemList = TodoItemList(DateType.getInstance(DateType.Type.NO_DATE))
-        todoItemList.add(initTodoItem1.id, initTodoItem1.copy())
-        todoItemList.add(initTodoItem2.id, initTodoItem2.copy())
+        val todoItemList : MutableList<TodoItem> = mutableListOf()
+        todoItemList.add(initTodoItem1.copy())
+        todoItemList.add(initTodoItem2.copy())
 
         todoDataSource = mock(ITodoDataSource::class.java)
         `when`(todoDataSource.getTodoItems(DateType.getInstance(DateType.Type.NO_DATE))).thenReturn(
             todoItemList
         )
         `when`(todoDataSource.getTodoItems(editedTodoItem.dateType.value)).thenReturn(
-            TodoItemList(editedTodoItem.dateType.value)
+            mutableListOf()
         )
         `when`(todoDataSource.getTodoItem(initTodoItem1.id)).thenReturn(
             initTodoItem1.copy()
@@ -77,16 +75,6 @@ class TodoRepositoryTest {
         todoRepository = TodoRepository(uniqueIdProvider, todoDataSource, testScope)
     }
 
-    private fun addTestTodoItemToRepository(todoItem: TodoItem) {
-        todoRepository.createNewTodoItem(
-            todoItem.title.value,
-            todoItem.description.value,
-            todoItem.dateType.value,
-            todoItem.position.value,
-            todoItem.isCompleted.value
-        )
-    }
-
 
 
     @Test
@@ -97,7 +85,7 @@ class TodoRepositoryTest {
 
         val todoItems = todoRepository.getTodoItems(DateType.getInstance(DateType.Type.NO_DATE))
 
-        todoItems.items[initTodoItem1.id]?.title?.value = editedTodoItem.title.value
+        todoItems.get(initTodoItem1.id).title.value = editedTodoItem.title.value
 
         var collectedTitle = ""
         val collectTitleJob = launch {
@@ -118,7 +106,7 @@ class TodoRepositoryTest {
         val testCollector = TodoItemTestCollector(todoItemList)
         testCollector.startCollecting(this)
 
-        addTestTodoItemToRepository(testTodoItem1)
+        addTestTodoItemToRepository(todoRepository, testTodoItem1)
 
         advanceUntilIdle()
         testCollector.stopCollecting()
@@ -153,7 +141,7 @@ class TodoRepositoryTest {
         val testCollector = TodoItemTestCollector(todoItemList)
         testCollector.startCollecting(this)
 
-        addTestTodoItemToRepository(testTodoItem1)
+        addTestTodoItemToRepository(todoRepository, testTodoItem1)
         todoRepository.deleteTodoItem(testTodoItem1.id)
 
         advanceUntilIdle()
@@ -193,8 +181,8 @@ class TodoRepositoryTest {
         val testCollector = TodoItemTestCollector(todoItemListNoDate)
         testCollector.startCollecting(this)
 
-        addTestTodoItemToRepository(testTodoItem1)
-        addTestTodoItemToRepository(testTodoItem2)
+        addTestTodoItemToRepository(todoRepository, testTodoItem1)
+        addTestTodoItemToRepository(todoRepository, testTodoItem2)
 
         todoRepository.updatePosition(testTodoItem2.id, newPositionOfItem2)
 
@@ -270,44 +258,4 @@ class TodoRepositoryTest {
         assertTrue(todoItemList.items.containsKey(testTodoItem1.id))
     }
 
-}
-
-
-class TodoItemTestCollector(
-    private val todoItemList: ReadOnlyTodoItemList
-) {
-    val collectedTitles = mutableListOf<String>()
-    val collectedDescriptions = mutableListOf<String>()
-    val collectedDateTypes = mutableListOf<DateType>()
-    val collectedPositions = mutableListOf<Int>()
-    val collectedCompletionStates = mutableListOf<Boolean>()
-
-    val collectedItemsAdded = mutableListOf<Int>()
-    val collectedItemsRemoved = mutableListOf<Int>()
-    val collectedPositionsChanged = mutableListOf<Boolean>()
-
-    private val jobs = mutableListOf<Job>()
-
-    private val readinessDeferred = CompletableDeferred<Unit>()
-
-    suspend fun startCollecting(scope: CoroutineScope) {
-        for (todoItem in todoItemList.items.values) {
-            jobs += scope.launch { todoItem.title.collect { collectedTitles.add(it) } }
-            jobs += scope.launch { todoItem.description.collect { collectedDescriptions.add(it) } }
-            jobs += scope.launch { todoItem.dateType.collect { collectedDateTypes.add(it) } }
-            jobs += scope.launch { todoItem.position.collect { collectedPositions.add(it) } }
-            jobs += scope.launch { todoItem.isCompleted.collect { collectedCompletionStates.add(it) } }
-        }
-        jobs += scope.launch { todoItemList.itemAdded.collect { collectedItemsAdded.add(it) } }
-        jobs += scope.launch { todoItemList.itemRemoved.collect { collectedItemsRemoved.add(it) } }
-        jobs += scope.launch {
-            readinessDeferred.complete(Unit)
-            todoItemList.positionsChanged.collect {
-            collectedPositionsChanged.add(true) } }
-        readinessDeferred.await()
-    }
-
-    fun stopCollecting() {
-        jobs.forEach { it.cancel() }
-    }
 }

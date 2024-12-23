@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.jetbrainsKotlinAndroid)
+    id("app.cash.sqldelight") version "2.0.2"
 }
 
 android {
@@ -55,4 +56,15 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation("org.mockito:mockito-android:5.5.0")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
+    implementation("app.cash.sqldelight:runtime:2.0.2")
+    implementation("app.cash.sqldelight:android-driver:2.0.2")
+    testImplementation ("app.cash.sqldelight:sqlite-driver:2.0.2")
+}
+
+sqldelight {
+    databases {
+        create("Database") {
+            packageName.set("com.georg.todoapp.db")
+        }
+    }
 }

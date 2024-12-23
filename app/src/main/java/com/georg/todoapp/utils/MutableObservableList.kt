@@ -6,7 +6,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 // Index is the type of the index used to access the items in the list
 open class MutableObservableList<Index, MutableItem, ReadOnlyItem> : IObservableList<Index, ReadOnlyItem> where MutableItem : ReadOnlyItem {
     private val _items = mutableMapOf<Index, MutableItem>()
-    override val items = _items
+    override val items: Map<Index, ReadOnlyItem> = _items
     private val _itemAdded = MutableSharedFlow<Index>(extraBufferCapacity = Int.MAX_VALUE) // replay = Int.MAX_VALUE)
     override val itemAdded = _itemAdded.asSharedFlow()
     private val _itemRemoved = MutableSharedFlow<Index>(extraBufferCapacity = Int.MAX_VALUE) // replay = Int.MAX_VALUE)
@@ -27,7 +27,7 @@ open class MutableObservableList<Index, MutableItem, ReadOnlyItem> : IObservable
         _itemRemoved.tryEmit(index)
     }
 
-    fun get(index: Index): MutableItem = items[index] ?: throw IllegalArgumentException("No item found for the given index: $index")
+    fun get(index: Index): MutableItem = _items[index] ?: throw IllegalArgumentException("No item found for the given index: $index")
 
     open fun hasObservers(): Boolean = _itemAdded.subscriptionCount.value > 0 || _itemRemoved.subscriptionCount.value > 0
 }
