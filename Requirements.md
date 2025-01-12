@@ -124,7 +124,9 @@
 
 - Ansicht besteht aus einer Liste, in der die Todos untereinander mit Titeln angezeigt werden.
 - Über ein Einstellungsmenü können verschiedene Arten von wiederkehrenden Todos ein- und ausgeblendet werden:
-  - Tages-, Wochen-, Monats-, Jahres- und benutzerdefinierte Intervalle.
+  - Wochentage, Tage, Wochen, Monate, Jahre
+  - Wochentage: es können die Wochentage ausgewählt werden, an denen sich ein Todo ändert
+  - alle anderen: es kann ein Intervall ausgewählt werden (z.B. alle 5 Tage)
 - Modi: Bearbeiten und Hinzufügen (standardmäßig Bearbeiten).
 
 #### Einstellungs-Popup
