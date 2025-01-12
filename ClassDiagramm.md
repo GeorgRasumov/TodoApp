@@ -9,113 +9,86 @@ classDiagram
 direction RL
 
     class TodoItem {
-        + mutableDateType
-        + observableDateType
-        + mutablePosition
-        + observablePosition
-        + mutableTitle
-        + observableTitle
-        + mutableDescription
-        + observableDescription
-        + mutableIsCompleted
-        + observableIsCompleted
-        + getId()
+        + id
+        + title
+        + description
+        + dateType
+        + position
+        + isCompleted
+        + repetitiveTodoId
     }
 
-    class IReadTodoItem {
-        + observablePosition
-        + observableTitle
-        + observableDescription
-        + observableIsCompleted
-        + getId()
+    class TodoItemFactory{
+        + createNewTodoItem()
     }
 
     class TodoRepository{
-        + addGetTodosCallback(Callable)
-        + removeGetTodosCallback(Callable)
-        + getTodoList(dateType)
-        + getTodo(id)
-        + addTodo(title, dateType, position)
-        + editTitle(id, newTitle)
+        + createNewTodoItem()
+        + deleteTodoItem()
+        + getTodoItems(dateType)
+        + getTodoItem(id)
+        + editTitle()
+        + editDescription(id, newTitle)
         + editDateType(id, newDateType)
         + editPosition(id, newPosition)
-        + editDescription(id, newDescription)
         + editIsCompleted(id, isCompleted)
-        + deleteTodo(id)
     }
 
-    class TodoItemList{
-        + TodoDeletedEvent
-        + TodoCreatedEvent
-        + getReadableTodos()
-        + addTodo(RepetitiveTodo)
-        + removeTodo(id)
+    class TodoService{
+        + onTodoCreatedEvent
+        + onTodoDeletedEvent
+        + onTodoEditedEvent
+        + getTodoItemsByDateType()
+        + getTodoItemById()
+        + setActiveDateType(DateType)
+        + createNewTodoItem()
+        + deleteTodoItem()
+        + updatedTodo(TodoItem)
+        + updatePositions()
     }
 
-    class IReadTodoItemList{
-        + TodoDeletedEvent
-        + TodoCreatedEvent
-        + getReadableTodos()
+    class RepetitiveTodoService{
+        + onRepetitiveTodoCreatedEvent
+        + onRepetitiveTodoDeletedEvent
+        + onRepetitiveTodoEditedEvent
+        + getRepetitiveTodoByType()
+        + getAllRepetitiveTodos()
+        + getRepetitiveTodoById()
+        + getTodosForDate(DateType)
+        + createNewRepetitiveTodo()
+        + addCreatedTodoToRepetitiveTodo()
+        + deleteRepetitiveTodo()
+        + updateRepetitiveTodo()
+        + updatePositions()
     }
+
 
     class RepetitiveTodo{
-        - TodoItemIds
-        - daysCreated
-        + mutableTitle
-        + observableTitle
-        + mutableType
-        + observableType
-        + mutablePosition
-        + observablePosition
-        + mutableStartDate
-        + observableStartDate
-        + mutableIntervall
-        + observableIntervall
-        + getId()
-    }
-
-    class IReadRepetitiveTodo {
-        + observableTitle
-        + observableType
-        + observablePosition
-        + observableStartDate
-        + observableIntervall
-        getId()
+        + id
+        + title
+        + description
+        + position
+        + type
+        + interval
+        + weekdays
+        + startDate
+        + createdTodos
     }
 
     class RepetitiveTodoRepository{
-        - RepetitiveTodoList
-        + getReadableTodoList()
-        + getTodo(id)
-        + addTodo(title, repetitionType, position, startDay, intervall)
-        + editTitle(id, newTitle)
-        + editRepetitionType(id, newRepetitionType)
-        + editPosition(id, newPosition)
-        + editStartDay(id, newStartDay)
-        + editIntervall(id, newIntervall)
-        + deleteTodo(id)
-    }
-
-    class RepetitiveTodoList{
-        + TodoDeletedEvent
-        + TodoCreatedEvent
-        + getReadableTodos()
-        + addTodo(RepetitiveTodo)
-        + removeTodo(id)
-    }
-
-    class IReadRepetitiveTodoList{
-        + TodoDeletedEvent
-        + TodoCreatedEvent
-        + getReadableTodos()
-    }
-
-    class RepetitiveTodoHandler{
-
-    }
-
-    class TodoHandler{
-
+        + createNewRepetitiveTodo()
+        + deleteRepetitiveTodo()
+        + getRepetitiveTodos()
+        + getAllRepetitiveTodos()
+        + getRepetitiveTodo()
+        + editTitle()
+        + editDescription()
+        + editRepetitionType()
+        + editPosition()
+        + editInterval()
+        + editWeekdays()
+        + editStartDate()
+        + editCreatedTodos()
     }
 
 
@@ -174,31 +147,17 @@ MainActivity --> MainViewModel : observes & calls
 MainActivity --> CalenderView : creates & destroys
 MainActivity --> TodoItemListView : creates & destroys
 MainActivity --> RepetitiveTodoListView : creates & destroys
-RepetitiveTodo ..|> IReadRepetitiveTodo : implements
-RepetitiveTodoHandler ..> RepetitiveTodoRepository : observes & calls
-RepetitiveTodoHandler ..> TodoRepository : observes & calls
-RepetitiveTodoList ..|> IReadRepetitiveTodoList : inmplements
 RepetitiveTodoListView --> RepetitiveTodoListViewModel : observes & calls
 RepetitiveTodoListView --> RepetitiveTodoView : creates
-RepetitiveTodoListViewModel --> RepetitiveTodoRepository : observes & calls
-RepetitiveTodoListViewModel --> IReadRepetitiveTodoList : observes
-RepetitiveTodoList .. RepetitiveTodo : has
-RepetitiveTodoRepository --> RepetitiveTodoList : updates
-RepetitiveTodoRepository --> RepetitiveTodo : updates
+RepetitiveTodoListViewModel --> RepetitiveTodoService : observes & calls
 RepetitiveTodoView --> RepetitiveTodoViewModel : observes & calls
 RepetitiveTodoViewModel --> RepetitiveTodoListViewModel : observes & calls
-RepetitiveTodoViewModel --> IReadRepetitiveTodo : observes
-TodoHandler ..> TodoRepository : observes & calls
-TodoItem ..|> IReadTodoItem : implements
 TodoItemView --> TodoItemViewModel : observes & calls
-TodoItemViewModel --> IReadTodoItem : observes
-TodoItemViewModel --> BaseListViewModel : observes & calls
-TodoItemList .. IReadTodoItem : has
-TodoItemList ..|> IReadTodoItemList : implements
-TodoItemListView --> TodoItemListViewModel : observes & calls
+TodoItemViewModel --> TodoItemListViewModel : observes & calls
 TodoItemListView --> TodoItemView : creates
-TodoItemListViewModel --> TodoRepository : observes & calls
-TodoItemListViewModel --> IReadTodoItemList : observes
+TodoItemListView --> TodoItemListViewModel : observes & calls
 
-TodoRepository --> TodoItem : updates
-TodoRepository --> TodoItemList : updates
+TodoItemListViewModel --> TodoService : observes & calls
+TodoService --> TodoRepository : observes & calls
+TodoService --> RepetitiveTodoService : observes & calls
+RepetitiveTodoService --> RepetitiveTodoRepository : observes & calls
