@@ -66,7 +66,7 @@
  - list todos that are only due once
  - has different pages:
      - unscheduled
-     - always doable
+     - flexible
      - waiting
      - scheduled
   
@@ -98,7 +98,7 @@
    - Unscheduled
    - Halted
    - Is Waiting
- - Always doable
+ - Flexible
  - Project
  - Hide in Calendar
  - push to next day
