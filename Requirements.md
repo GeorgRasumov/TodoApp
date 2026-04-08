@@ -49,10 +49,13 @@
 
 ### 3.1.2 Todays Todos
 - shows all todays todos aswell as overdue todos
-- overdue are presented at the end of the day
+- section for overdue at the bottom
+ - pressing an overdue todo will add it to today
 
 ### 3.1.3 Tomorrows Todos
  - show all todos for tomorrow
+ - section for overdue at the bottom
+ - pressing an overdue todo will add it to tomorrow
 
 ### 3.1.4 Calendar
  - show calendar with all days
@@ -98,6 +101,7 @@
  - Always doable
  - Project
  - Hide in Calendar
+ - push to next day
  - Color
 
 ### Edit and Create Repetitive Todo Popup
@@ -109,6 +113,7 @@
   - day of year
  - repetion times
  - Hide in Calendar
+ - push to next day
  - Color
 
 
