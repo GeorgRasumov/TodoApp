@@ -97,7 +97,7 @@
    - Scheduled (has due date)
    - Unscheduled
    - Halted
-   - Is Waiting
+ - Is Waiting
  - Flexible
  - Project
  - Hide in Calendar
